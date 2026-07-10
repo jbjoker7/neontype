@@ -331,6 +331,8 @@ function bindKeys() {
   const refocus = () => {
     overlay.hidden = true;
     $("#words").classList.remove("blurred");
+    // position may be stale after a long background-tab suspension
+    test?.positionCaret(true);
   };
   window.addEventListener("focus", refocus);
   overlay.addEventListener("click", refocus);

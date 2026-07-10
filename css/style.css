@@ -230,12 +230,13 @@ main {
   border-radius: 2px;
   background: var(--magenta);
   box-shadow: 0 0 10px var(--magenta), 0 0 22px rgba(255, 46, 196, 0.5);
-  transition: transform 0.085s cubic-bezier(0.3, 0.8, 0.4, 1);
+  /* movement is a JS rAF smoothing loop — no transform transition here,
+     retargeting a CSS transition on every keystroke rubber-bands */
+  will-change: transform;
   animation: blink 1.1s steps(1) infinite;
   z-index: 2;
 }
 #caret.typing { animation: none; opacity: 1; }
-#caret.instant { transition: none; }
 #caret.hidden { opacity: 0; }
 @keyframes blink { 50% { opacity: 0.15; } }
 
