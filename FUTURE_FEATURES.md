@@ -55,8 +55,28 @@ Staged, cheapest-first:
   is already the top item in the README roadmap; the data collection is the prerequisite.
 - **Per-word "average human typing time"** — the thing that didn't exist as a lookup table
   when this started. With enough data we can derive it directly.
+- **"Time to write" estimator** — once average time-per-word is known, estimate how long it
+  would take to *type* a given text: paste a passage (or point at a book's word list) and
+  get a predicted typing time from the per-word timings. A headline research output.
+- **Build our own per-word timing library** — accumulate real samples for every word in the
+  bank, so the difficulty grade for each word is backed by measured data rather than the
+  heuristic model.
 - **Personal analytics** — a user's slowest letter pairs, most-missed words, speed over
   time, consistency trends.
+
+### Data quality: filtering false data
+
+Crowd-sourced typing data is noisy — bots, autofill, paste, someone mashing keys, or a
+practiced typist on a familiar passage all skew the "average." To keep the dataset honest:
+
+- **Speed sanity limits** — reject or flag words/tests typed implausibly fast (above a
+  human ceiling, e.g. samples implying >250–300 WPM sustained) as likely paste/bot/autofill.
+- **Per-user average bounds** — compare a sample against that anonymous user's own running
+  average; a sudden huge deviation is suspect and can be down-weighted rather than trusted.
+- **Reject non-organic input** — ignore pasted text and synthetic key events (real typing
+  has natural inter-key jitter; paste arrives as one event, bots are often too regular).
+- **Minimum sample counts** — don't report a per-word average until enough independent
+  samples exist for it to mean anything.
 
 ### Ethics & rigor (do this before collecting anything real)
 
