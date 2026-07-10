@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>neontype</title>
+  <meta name="description" content="A neon-cyberpunk typing test with difficulty-balanced word selection." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2313091f'/%3E%3Cpath d='M6 10h20M8 10v14M24 10v14M4 8h24' stroke='%23a855f7' stroke-width='3' fill='none'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span class="logo-glyph">⛩</span>
+      <h1>neon<span>type</span></h1>
+    </div>
+    <nav id="config">
+      <div class="group" id="mode-group">
+        <button data-mode="time">time</button>
+        <button data-mode="words">words</button>
+      </div>
+      <div class="sep"></div>
+      <div class="group" id="value-group"></div>
+      <div class="sep"></div>
+      <div class="group" id="preset-group"></div>
+      <div class="group slider-group">
+        <input type="range" id="difficulty-slider" min="0" max="100" step="5" />
+        <span id="difficulty-value" title="target average word difficulty (0-100)">40</span>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section id="test">
+      <div class="hud">
+        <span id="timer">30</span>
+        <span id="live-wpm"></span>
+      </div>
+      <div id="words-frame">
+        <div id="caret"></div>
+        <div id="words"></div>
+      </div>
+      <p class="hint"><kbd>tab</kbd> or <kbd>esc</kbd> — restart test</p>
+    </section>
+
+    <section id="result" hidden>
+      <div class="result-top">
+        <div class="big-stat">
+          <div class="stat-label">wpm</div>
+          <div class="stat-value" id="r-wpm">0</div>
+          <div class="pb-badge" id="r-pb" hidden>new pb!</div>
+        </div>
+        <div class="big-stat">
+          <div class="stat-label">acc</div>
+          <div class="stat-value" id="r-acc">0%</div>
+        </div>
+        <div class="stat-grid">
+          <div><span class="stat-label">raw</span><span id="r-raw">0</span></div>
+          <div><span class="stat-label">consistency</span><span id="r-consistency">0%</span></div>
+          <div><span class="stat-label" title="correct / incorrect / extra / missed">chars</span><span id="r-chars">0</span></div>
+          <div><span class="stat-label">time</span><span id="r-time">0s</span></div>
+          <div><span class="stat-label">mode</span><span id="r-mode"></span></div>
+          <div>
+            <span class="stat-label">difficulty</span>
+            <span id="r-difficulty">0</span>
+            <span class="stat-note" id="r-difficulty-note"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="chart-wrap">
+        <div class="legend">
+          <span><i class="sw sw-wpm"></i>wpm</span>
+          <span><i class="sw sw-raw"></i>raw</span>
+          <span><i class="sw sw-err"></i>errors</span>
+        </div>
+        <canvas id="chart"></canvas>
+        <div id="chart-tooltip"></div>
+        <details>
+          <summary>data table</summary>
+          <table id="chart-table">
+            <thead><tr><th>sec</th><th>wpm</th><th>raw</th><th>errors</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </details>
+      </div>
+
+      <button id="next-test">next test <kbd>enter</kbd></button>
+    </section>
+  </main>
+
+  <footer>
+    <span>difficulty model: frequency rank + motor effort, percentile-normalized — every test averages to your target</span>
+  </footer>
+
+  <script src="js/words.js"></script>
+  <script src="js/difficulty.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
