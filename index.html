@@ -4,29 +4,40 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>neontype</title>
-  <meta name="description" content="A neon-cyberpunk typing test with difficulty-balanced word selection." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2313091f'/%3E%3Cpath d='M6 10h20M8 10v14M24 10v14M4 8h24' stroke='%23a855f7' stroke-width='3' fill='none'/%3E%3C/svg%3E" />
+  <meta name="description" content="A neon typing test where every test averages to your chosen difficulty." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2313091f'/%3E%3Cpath d='M10 22V10l12 12V10' stroke='%23a855f7' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header>
     <div class="logo">
-      <span class="logo-glyph">⛩</span>
+      <svg class="logo-glyph" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M10 22V10l12 12V10" stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <h1>neon<span>type</span></h1>
     </div>
-    <nav id="config">
-      <div class="group" id="mode-group">
-        <button data-mode="time">time</button>
-        <button data-mode="words">words</button>
+
+    <nav id="quickbar" aria-label="quick settings">
+      <div class="qgroup" role="group" aria-label="mode">
+        <span class="qlabel">mode</span>
+        <div class="seg" id="mode-group">
+          <button data-mode="time">time</button>
+          <button data-mode="words">words</button>
+          <button data-mode="infinite" title="type forever — shift+enter to finish">∞</button>
+        </div>
       </div>
-      <div class="sep"></div>
-      <div class="group" id="value-group"></div>
-      <div class="sep"></div>
-      <div class="group" id="preset-group"></div>
-      <div class="group slider-group">
-        <input type="range" id="difficulty-slider" min="0" max="100" step="5" />
-        <span id="difficulty-value" title="target average word difficulty (0-100)">40</span>
+      <div class="qgroup" role="group" aria-label="length" id="value-qgroup">
+        <span class="qlabel" id="value-label">seconds</span>
+        <div class="seg" id="value-group"></div>
       </div>
+      <button id="difficulty-chip" title="difficulty — click to adjust">
+        <span class="qlabel">difficulty</span>
+        <span id="chip-name">samurai</span>
+        <span id="chip-num">40</span>
+      </button>
+      <button id="settings-open" title="all settings" aria-label="open settings">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8-.5-1.7-3-2.6.9a7 7 0 0 0-1.6-.9L13.5 2h-3l-.6 2.9a7 7 0 0 0-1.6.9L5.7 5 4 8l2 2.1a7 7 0 0 0 0 1.8L4 14l1.7 3 2.6-.9a7 7 0 0 0 1.6.9l.6 2.9h3l.6-2.9a7 7 0 0 0 1.6-.9l2.6.9 1.7-3-2-2.1a7 7 0 0 0 0-1.8L20 8Z"/></svg>
+      </button>
     </nav>
   </header>
 
@@ -34,13 +45,14 @@
     <section id="test">
       <div class="hud">
         <span id="timer">30</span>
+        <span id="caps-warning" hidden>⇪ caps lock</span>
         <span id="live-wpm"></span>
       </div>
       <div id="words-frame">
-        <div id="caret"></div>
-        <div id="words"></div>
+        <div id="words"><div id="caret"></div></div>
+        <div id="focus-overlay" hidden><span>click here or press any key to focus</span></div>
       </div>
-      <p class="hint"><kbd>tab</kbd> or <kbd>esc</kbd> — restart test</p>
+      <p class="hint" id="hint"><kbd>tab</kbd> or <kbd>esc</kbd> — restart · <kbd>⚙</kbd> — settings</p>
     </section>
 
     <section id="result" hidden>
@@ -85,16 +97,85 @@
         </details>
       </div>
 
-      <button id="next-test">next test <kbd>enter</kbd></button>
+      <div class="result-actions">
+        <button id="next-test" class="action">next test <kbd>enter</kbd></button>
+      </div>
     </section>
   </main>
 
   <footer>
-    <span>difficulty model: frequency rank + motor effort, percentile-normalized — every test averages to your target</span>
+    <span>every test averages to your chosen difficulty · vanilla js, no trackers</span>
   </footer>
+
+  <!-- settings drawer -->
+  <div id="drawer-scrim" hidden></div>
+  <aside id="settings" hidden aria-label="settings">
+    <header>
+      <h2>settings</h2>
+      <button id="settings-close" aria-label="close settings">✕</button>
+    </header>
+
+    <section>
+      <h3>test</h3>
+      <div class="field">
+        <label>mode</label>
+        <div class="seg" id="s-mode">
+          <button data-mode="time">time</button>
+          <button data-mode="words">words</button>
+          <button data-mode="infinite">infinite</button>
+        </div>
+        <p class="help">time — type until the clock runs out · words — type a fixed count · infinite — type forever, finish with shift+enter</p>
+      </div>
+      <div class="field" id="s-value-field">
+        <label id="s-value-label">duration</label>
+        <div class="seg" id="s-value"></div>
+      </div>
+      <div class="field">
+        <label>visible lines</label>
+        <div class="seg" id="s-lines"></div>
+        <p class="help">how many rows of upcoming words stay on screen</p>
+      </div>
+    </section>
+
+    <section>
+      <h3>words</h3>
+      <div class="field">
+        <label>library</label>
+        <div id="s-library" class="cards"></div>
+      </div>
+      <div class="field">
+        <label>difficulty</label>
+        <div class="seg" id="s-presets"></div>
+        <div class="slider-row">
+          <input type="range" id="s-difficulty" min="0" max="100" step="5" aria-label="target difficulty" />
+          <output id="s-difficulty-out">40</output>
+        </div>
+        <p class="help" id="s-difficulty-help"></p>
+      </div>
+    </section>
+
+    <section>
+      <h3>experience</h3>
+      <div class="field row">
+        <div>
+          <label for="s-sound">typing sounds</label>
+          <p class="help">soft synth clicks, lower thud on mistakes</p>
+        </div>
+        <button class="toggle" id="s-sound" role="switch" aria-checked="false"></button>
+      </div>
+      <div class="field row">
+        <div>
+          <label for="s-caps">caps lock warning</label>
+          <p class="help">show a badge while caps lock is on</p>
+        </div>
+        <button class="toggle" id="s-caps" role="switch" aria-checked="true"></button>
+      </div>
+    </section>
+  </aside>
 
   <script src="js/words.js"></script>
   <script src="js/difficulty.js"></script>
+  <script src="js/sound.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/main.js"></script>

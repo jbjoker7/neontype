@@ -260,5 +260,87 @@ const RAW_WORDS = [
   "yield", "zealous", "zenith", "zephyr", "zigzag", "zodiac",
 ];
 
+// Programming & computing vocabulary, roughly everyday-first.
+const TECH_WORDS = [
+  "code", "file", "app", "web", "site", "link", "page", "user", "data", "test",
+  "line", "type", "run", "bug", "fix", "save", "load", "edit", "copy", "paste",
+  "undo", "redo", "font", "text", "image", "video", "audio", "email", "cloud", "wifi",
+  "phone", "screen", "mouse", "click", "scroll", "print", "scan", "install", "update", "delete",
+  "search", "filter", "sort", "list", "table", "chart", "graph", "form", "input", "output",
+  "button", "menu", "window", "folder", "path", "drive", "disk", "memory", "cache", "server",
+  "client", "host", "port", "domain", "network", "socket", "packet", "signal", "binary", "byte",
+  "bit", "pixel", "vector", "matrix", "array", "string", "number", "boolean", "object", "class",
+  "method", "function", "variable", "constant", "scope", "loop", "index", "value", "key", "hash",
+  "map", "set", "queue", "stack", "tree", "node", "edge", "branch", "merge", "commit",
+  "push", "pull", "clone", "fork", "repo", "diff", "patch", "tag", "release", "deploy",
+  "build", "compile", "debug", "log", "trace", "error", "warning", "crash", "freeze", "reboot",
+  "restart", "backup", "restore", "encrypt", "decrypt", "token", "session", "cookie", "password", "firewall",
+  "proxy", "router", "kernel", "driver", "thread", "process", "daemon", "script", "shell", "terminal",
+  "console", "command", "argument", "flag", "syntax", "parser", "compiler", "runtime", "library", "module",
+  "package", "import", "export", "interface", "abstract", "static", "public", "private", "integer", "float",
+  "double", "char", "enum", "struct", "pointer", "reference", "allocate", "heap", "buffer", "overflow",
+  "latency", "bandwidth", "throughput", "protocol", "endpoint", "request", "response", "header", "payload", "status",
+  "query", "database", "schema", "record", "field", "column", "row", "primary", "foreign", "transaction",
+  "rollback", "migration", "backend", "frontend", "framework", "algorithm", "recursion", "iteration", "closure", "callback",
+  "promise", "async", "await", "event", "listener", "handler", "emitter", "observer", "singleton", "factory",
+  "adapter", "decorator", "middleware", "dependency", "injection", "container", "virtual", "machine", "sandbox", "emulator",
+  "hypervisor", "cluster", "shard", "replica", "failover", "redundancy", "scalability", "concurrency", "parallelism", "mutex",
+  "semaphore", "deadlock", "atomic", "immutable", "idempotent", "polymorphism", "inheritance", "encapsulation", "abstraction", "refactor",
+  "lint", "unit", "integration", "regression", "coverage", "fixture", "mock", "stub", "assertion", "benchmark",
+  "profiler", "optimize", "minify", "bundle", "transpile", "polyfill", "webhook", "websocket", "keyboard", "monitor",
+  "laptop", "desktop", "tablet", "browser", "render", "layout", "stylesheet", "selector", "attribute", "element",
+  "template", "component", "state", "props", "hook", "route", "redirect", "timeout", "interval", "debounce",
+  "throttle", "serialize", "validate", "sanitize", "escape", "regex", "wildcard", "glob", "manifest", "registry",
+];
+
+// Cyberpunk streets & circuitry: neon cityscape flavor, ordinary words only.
+const NEON_CITY_WORDS = [
+  "neon", "city", "night", "rain", "street", "light", "glow", "glass", "steel", "wire",
+  "grid", "tower", "alley", "market", "taxi", "train", "subway", "rooftop", "skyline", "billboard",
+  "sign", "smoke", "mist", "fog", "dusk", "dawn", "midnight", "moonlight", "shadow", "puddle",
+  "reflection", "umbrella", "jacket", "boots", "visor", "lens", "chrome", "circuit", "static", "frequency",
+  "antenna", "satellite", "drone", "android", "cyborg", "robot", "machine", "engine", "reactor", "plasma",
+  "laser", "pulse", "voltage", "current", "sensor", "scanner", "implant", "augment", "console", "terminal",
+  "mainframe", "uplink", "datastream", "cyberspace", "avatar", "ghost", "phantom", "specter", "cipher", "protocol",
+  "courier", "runner", "hacker", "broker", "fixer", "syndicate", "cartel", "enclave", "district", "sector",
+  "precinct", "junction", "overpass", "tunnel", "canal", "harbor", "dockyard", "warehouse", "factory", "foundry",
+  "refinery", "generator", "turbine", "dynamo", "capacitor", "resistor", "transistor", "diode", "cathode", "anode",
+  "hologram", "spectrum", "prism", "violet", "magenta", "crimson", "cobalt", "indigo", "azure", "obsidian",
+  "onyx", "mercury", "titanium", "carbon", "fiber", "optic", "aurora", "eclipse", "twilight", "horizon",
+  "dojo", "sensei", "katana", "ronin", "sakura", "torii", "koi", "zen", "haiku", "origami",
+  "bonsai", "tatami", "ramen", "sushi", "mochi", "matcha", "kitsune", "tanuki", "yokai", "kami",
+  "shrine", "temple", "lantern", "festival", "garden", "bamboo", "blossom", "petal", "crane", "dragonfly",
+  "firefly", "riverbank", "monsoon", "typhoon", "thunder", "lightning", "downpour", "vapor", "ozone", "asphalt",
+  "concrete", "graffiti", "stencil", "mural", "arcade", "vending", "noodles", "lantern", "incense", "paper",
+  "silk", "ink", "brush", "mask", "kite", "drum", "flute", "chime", "echo", "silence",
+];
+
 // Dedupe while preserving first-occurrence order (index doubles as frequency rank).
 const WORDS = [...new Set(RAW_WORDS)];
+
+// Word libraries. Each is difficulty-graded independently (percentiles are
+// computed within the selected library), so "difficulty 65" always means
+// "harder than 65% of *this* library".
+const LIBRARIES = {
+  "english": {
+    label: "english",
+    desc: "everyday english",
+    words: WORDS,
+  },
+  "english-lite": {
+    label: "english lite",
+    desc: "the 500 most common words",
+    words: WORDS.slice(0, 500),
+  },
+  "tech": {
+    label: "tech",
+    desc: "programming & computing",
+    words: [...new Set(TECH_WORDS)],
+  },
+  "neon-city": {
+    label: "neon city",
+    desc: "cyberpunk streets & circuitry",
+    words: [...new Set(NEON_CITY_WORDS)],
+  },
+};
+

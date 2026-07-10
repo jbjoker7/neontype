@@ -112,7 +112,7 @@ class ResultChart {
   }
 
   drawLine(key, color) {
-    const { ctx } = { ctx: this.canvas.getContext("2d") };
+    const ctx = this.canvas.getContext("2d");
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";

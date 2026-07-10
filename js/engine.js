@@ -4,14 +4,25 @@ const MAX_EXTRA = 8; // extra letters allowed past the end of a word
 
 class TypingTest {
   // opts: { mode: "time"|"words", value: seconds|wordCount, target: 0-100,
-  //         onTick(test), onFinish(test) }
+  //         library: string, onTick(test), onFinish(test),
+  //         onHit(correct: boolean), onCapsLock(on: boolean) }
+  // els:  { words, caret, timer }
+  // The caret element lives INSIDE the #words container so the scroll
+  // transform moves caret and text as one unit — measuring offsets against
+  // a transformed ancestor is what made the old caret jump around.
   constructor(opts, els) {
     this.opts = opts;
-    this.els = els; // { words, caret, timer }
+    this.els = els;
 
+    // words mode is the only fixed-length mode; time and infinite modes
+    // stream words endlessly (topped up in commitWord, never exhausted)
     const initialCount =
-      opts.mode === "words" ? opts.value : Math.max(60, opts.value * 4);
-    const gen = generateTest(initialCount, opts.target);
+      opts.mode === "words"
+        ? opts.value
+        : opts.mode === "time"
+          ? Math.max(60, opts.value * 4)
+          : 80;
+    const gen = generateTest(initialCount, opts.target, opts.library);
     this.feeder = gen.feeder;
     this.words = gen.words.map((w) => ({
       target: w.text,
@@ -20,6 +31,7 @@ class TypingTest {
       committed: false,
       correct: null,
     }));
+    this.wordEls = [];
 
     this.wordIndex = 0;
     this.started = false;
@@ -27,7 +39,7 @@ class TypingTest {
     this.startTime = 0;
     this.elapsed = 0;
 
-    // keystroke accounting (monkeytype-style: correct / incorrect / extra / missed)
+    // keystroke accounting: correct / incorrect / extra / missed
     this.hits = { correct: 0, incorrect: 0, extra: 0, missed: 0 };
     this.correctChars = 0; // committed correct chars incl. spaces, for WPM
     this.rawChars = 0; // all committed chars incl. spaces
@@ -38,6 +50,9 @@ class TypingTest {
     this.secRaw = 0;
     this.lastSample = 0;
 
+    this.onResize = () => this.positionCaret(true);
+    window.addEventListener("resize", this.onResize);
+
     this.render();
     this.updateTimer();
   }
@@ -46,6 +61,11 @@ class TypingTest {
 
   handleKey(e) {
     if (this.finished) return false;
+
+    if (this.opts.onCapsLock && e.getModifierState) {
+      this.opts.onCapsLock(e.getModifierState("CapsLock"));
+    }
+
     const word = this.words[this.wordIndex];
 
     if (e.key === "Backspace") {
@@ -76,16 +96,20 @@ class TypingTest {
     const pos = word.typed.length;
     word.typed += e.key;
     this.secRaw++;
+    let hit;
     if (pos < word.target.length) {
-      if (e.key === word.target[pos]) this.hits.correct++;
+      hit = e.key === word.target[pos];
+      if (hit) this.hits.correct++;
       else {
         this.hits.incorrect++;
         this.secErrors++;
       }
     } else {
+      hit = false;
       this.hits.extra++;
       this.secErrors++;
     }
+    this.opts.onHit?.(hit);
 
     this.renderWord(this.wordIndex);
     this.positionCaret();
@@ -111,7 +135,7 @@ class TypingTest {
     this.wordIndex--;
     this.renderWord(this.wordIndex);
     this.renderWord(this.wordIndex + 1);
-    this.scrollToCurrent();
+    this.positionCaret();
   }
 
   commitWord() {
@@ -127,16 +151,19 @@ class TypingTest {
     if (word.correct) this.correctChars += word.target.length + 1;
 
     this.renderWord(this.wordIndex);
+    if (!word.correct) this.flashWord(this.wordIndex);
     this.wordIndex++;
 
     if (this.opts.mode === "words" && this.wordIndex >= this.words.length) {
       this.finish();
       return;
     }
-    if (this.opts.mode === "time" && this.wordIndex >= this.words.length - 30) {
+    if (
+      this.opts.mode !== "words" &&
+      this.wordIndex >= this.words.length - 30
+    ) {
       this.appendWords(30);
     }
-    this.scrollToCurrent();
     this.positionCaret();
   }
 
@@ -174,6 +201,7 @@ class TypingTest {
     this.updateTimer();
     this.opts.onTick?.(this);
 
+    // infinite mode never auto-finishes — the typist ends it with shift+enter
     if (this.opts.mode === "time" && this.elapsed >= this.opts.value) {
       this.finish();
     }
@@ -199,11 +227,14 @@ class TypingTest {
       this.rawChars += word.typed.length;
     }
 
+    this.els.caret.classList.add("hidden");
     this.opts.onFinish?.(this);
   }
 
   destroy() {
     clearInterval(this.tickHandle);
+    clearTimeout(this.caretIdle);
+    window.removeEventListener("resize", this.onResize);
   }
 
   // --- stats ---------------------------------------------------------------
@@ -255,7 +286,9 @@ class TypingTest {
         committed: false,
         correct: null,
       });
-      frag.appendChild(this.buildWordEl(this.words.length - 1));
+      const el = this.buildWordEl(this.words.length - 1);
+      this.wordEls.push(el);
+      frag.appendChild(el);
     }
     this.els.words.appendChild(frag);
   }
@@ -264,7 +297,6 @@ class TypingTest {
     const word = this.words[index];
     const el = document.createElement("div");
     el.className = "word";
-    el.dataset.index = index;
     for (const ch of word.target) {
       const s = document.createElement("span");
       s.textContent = ch;
@@ -274,20 +306,27 @@ class TypingTest {
   }
 
   render() {
-    this.els.words.innerHTML = "";
+    const container = this.els.words;
+    container.innerHTML = "";
+    // caret first, so clearing/rebuilding words never orphans it
+    container.appendChild(this.els.caret);
+    this.els.caret.classList.remove("hidden");
+    this.wordEls = [];
     const frag = document.createDocumentFragment();
     for (let i = 0; i < this.words.length; i++) {
-      frag.appendChild(this.buildWordEl(i));
+      const el = this.buildWordEl(i);
+      this.wordEls.push(el);
+      frag.appendChild(el);
     }
-    this.els.words.appendChild(frag);
-    this.els.words.style.transform = "translateY(0)";
+    container.appendChild(frag);
+    container.style.setProperty("--scroll", "0px");
     this.renderWord(0);
-    requestAnimationFrame(() => this.positionCaret());
+    requestAnimationFrame(() => this.positionCaret(true));
   }
 
   renderWord(index) {
     const word = this.words[index];
-    const el = this.els.words.children[index];
+    const el = this.wordEls[index];
     if (!word || !el) return;
 
     el.className = "word";
@@ -312,14 +351,15 @@ class TypingTest {
     }
   }
 
-  positionCaret() {
-    const el = this.els.words.children[this.wordIndex];
+  positionCaret(instant = false) {
+    const el = this.wordEls[this.wordIndex];
     const caret = this.els.caret;
     if (!el || this.finished) return;
+
     const typed = this.words[this.wordIndex].typed.length;
     const letters = el.children;
     let x, y;
-    if (typed === 0) {
+    if (typed === 0 || letters.length === 0) {
       x = el.offsetLeft;
       y = el.offsetTop;
     } else {
@@ -327,22 +367,47 @@ class TypingTest {
       x = el.offsetLeft + ref.offsetLeft + ref.offsetWidth;
       y = el.offsetTop + ref.offsetTop;
     }
+
+    if (instant) caret.classList.add("instant");
     caret.style.transform = `translate(${x}px, ${y}px)`;
-    this.scrollToCurrent();
+    if (instant) {
+      // flush so the no-transition move applies before re-enabling
+      void caret.offsetWidth;
+      caret.classList.remove("instant");
+    }
+
+    // solid while typing, blink when idle
+    caret.classList.add("typing");
+    clearTimeout(this.caretIdle);
+    this.caretIdle = setTimeout(() => caret.classList.remove("typing"), 600);
+
+    this.scrollToCurrent(el);
   }
 
-  scrollToCurrent() {
-    const el = this.els.words.children[this.wordIndex];
-    if (!el) return;
+  scrollToCurrent(el) {
     const lineH = el.offsetHeight;
-    const offset = Math.max(0, el.offsetTop - lineH);
+    // keep the active word on the second visible line, unless the viewport
+    // is only two lines tall — then pin it to the first
+    const keepLine = (this.opts.lines || 3) >= 3 ? 1 : 0;
+    const offset = Math.max(0, el.offsetTop - keepLine * lineH);
     this.els.words.style.setProperty("--scroll", `${-offset}px`);
+  }
+
+  flashWord(index) {
+    const el = this.wordEls[index];
+    if (!el) return;
+    el.classList.add("shake");
+    el.addEventListener("animationend", () => el.classList.remove("shake"), {
+      once: true,
+    });
   }
 
   updateTimer() {
     if (this.opts.mode === "time") {
       const left = Math.max(0, this.opts.value - this.elapsed);
       this.els.timer.textContent = Math.ceil(left);
+    } else if (this.opts.mode === "infinite") {
+      this.els.timer.textContent = `${Math.floor(this.elapsed)}s · ${this.wordIndex}`;
     } else {
       this.els.timer.textContent = `${Math.min(
         this.wordIndex,

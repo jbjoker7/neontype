@@ -82,18 +82,25 @@ function rawScore(word, rank, corpusSize) {
   );
 }
 
-// Build the scored corpus: [{ text, difficulty }], difficulty = percentile 0-100.
-const CORPUS = (() => {
-  const scored = WORDS.map((text, rank) => ({
+// Build a scored corpus for a library: [{ text, difficulty }], difficulty =
+// percentile 0-100 *within that library*. Cached per library id.
+const CORPUS_CACHE = {};
+
+function getCorpus(libraryId) {
+  if (CORPUS_CACHE[libraryId]) return CORPUS_CACHE[libraryId];
+  const words = (LIBRARIES[libraryId] || LIBRARIES["english"]).words;
+  const scored = words.map((text, rank) => ({
     text,
-    raw: rawScore(text, rank, WORDS.length),
+    raw: rawScore(text, rank, words.length),
   }));
   const order = [...scored].sort((a, b) => a.raw - b.raw);
   order.forEach((w, i) => {
     w.difficulty = Math.round((i / (order.length - 1)) * 100);
   });
-  return scored.map(({ text, difficulty }) => ({ text, difficulty }));
-})();
+  const corpus = scored.map(({ text, difficulty }) => ({ text, difficulty }));
+  CORPUS_CACHE[libraryId] = corpus;
+  return corpus;
+}
 
 // ---------------------------------------------------------------------------
 // Test generation: the average guarantee
@@ -109,11 +116,11 @@ const CANDIDATES = 28; // random candidates considered per slot
 const TOP_POOL = 8; // pick randomly among this many best candidates
 const NO_REPEAT = 8; // don't reuse any of the last N words
 
-function bandPool(target) {
+function bandPool(corpus, target) {
   let band = BAND;
   let pool;
   do {
-    pool = CORPUS.filter((w) => Math.abs(w.difficulty - target) <= band);
+    pool = corpus.filter((w) => Math.abs(w.difficulty - target) <= band);
     band += 6;
   } while (pool.length < 60 && band < 120);
   return pool;
@@ -122,9 +129,9 @@ function bandPool(target) {
 // A feeder steers the running mean toward the target word by word, so it
 // works for fixed-length tests and endless time-mode streams alike.
 class WordFeeder {
-  constructor(target) {
+  constructor(target, libraryId = "english") {
     this.target = target;
-    this.pool = bandPool(target);
+    this.pool = bandPool(getCorpus(libraryId), target);
     this.sum = 0;
     this.count = 0;
     this.recent = [];
@@ -158,8 +165,8 @@ class WordFeeder {
   }
 }
 
-function generateTest(count, target) {
-  const feeder = new WordFeeder(target);
+function generateTest(count, target, libraryId = "english") {
+  const feeder = new WordFeeder(target, libraryId);
   const words = [];
   for (let i = 0; i < count; i++) words.push(feeder.next());
   return { words, average: feeder.average(), feeder };
