@@ -96,3 +96,8 @@ point, and the test average is well-defined.
 
 MIT — see [LICENSE](LICENSE). All code, word lists, and the difficulty model are original
 to this project.
+
+
+Future features:
+I wanna turn it into a research project on average time/word as a dataset to then give metrics on how long it would take to write certain books
+I wanna turn it into a research tool to build a library of my own for each word in the bank and set limits on how fast someone types and avg type speed to prevent false data.
